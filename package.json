@@ -1,0 +1,24 @@
+{
+    "name": "dynamic-webserver",
+    "version": "0.0.0",
+    "description": "Dynamic Web Server using Node JS",
+    "author": {
+        "name": "Saleena Ly",
+        "email": "ly003004@stthomas.edu"
+    },
+    "contributors": [
+        {
+            "name": "Dylan Roberts",
+            "email": "robe8792@stthomas.edu"
+        }
+    ],
+    "main": "server.js",
+    "repository": {
+        "type": "git",
+        "url": ""
+    },
+    "dependencies": {
+        "express": "^4.17.1",
+        "sqlite3": "^4.1.0"
+    }
+}
