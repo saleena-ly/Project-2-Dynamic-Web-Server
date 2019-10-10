@@ -29,12 +29,33 @@ app.use(express.static(public_dir));
 
 // GET request handler for '/'
 app.get('/', (req, res) => {
-    ReadFile(path.join(template_dir, 'index.html')).then((template) => {
-        let response = template;
-        // modify `response` here
-        WriteHtml(res, response);
-    }).catch((err) => {
-        Write404Error(res);
+    db.all('SELECT * FROM Consumption WHERE year = ?', [2017], (err, rows) => {
+        if (err) console.error('there was an issue querying the database.');
+        else {
+            let count = {
+                coal: 0,
+                natural_gas: 0,
+                nuclear: 0,
+                petroleum: 0,
+                renewable: 0
+            }
+
+            //loops through each row and updates the count for each property.
+            rows.forEach(row => { for(key in count) { count[key] += row[key]; } });
+
+            ReadFile(path.join(template_dir, 'year.html')).then((template) => {
+                let response = template;
+                
+                //loops through all of the counts and replaces the html file contents
+                for(key in count) { 
+                    response = response.replace(`var ${key}_count;`, `var ${key}_count = ${count[key]}`); 
+                }
+
+                WriteHtml(res, response);
+            }).catch((err) => {
+                Write404Error(res);
+            });
+        }
     });
 });
 
