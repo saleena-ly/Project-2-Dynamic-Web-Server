@@ -15,7 +15,7 @@
     "main": "server.js",
     "repository": {
         "type": "git",
-        "url": ""
+        "url": "https://github.com/saleena-ly/Project-2-Dynamic-Web-Server.git"
     },
     "dependencies": {
         "express": "^4.17.1",
