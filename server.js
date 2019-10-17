@@ -40,16 +40,29 @@ app.get('/', (req, res) => {
                 renewable: 0
             }
 
-            //loops through each row and updates the count for each property.
-            rows.forEach(row => { for(key in count) { count[key] += row[key]; } });
+            let tableBody = '';
+
+            rows.forEach(row => {
+                tableBody += `<tr><td>${row.state_abbreviation}</td>`;
+
+                /*loops through coal, natural_gas, nuclear... and increments the
+                respective count and creates a cell in the table.*/
+                for(key in count) { 
+                    count[key] += row[key];
+                    tableBody += `<td>${row[key]}</td>`;
+                }
+                tableBody += '</tr>';
+            });
 
             ReadFile(path.join(template_dir, 'year.html')).then((template) => {
                 let response = template;
                 
                 //loops through all of the counts and replaces the html file contents
                 for(key in count) { 
-                    response = response.replace(`var ${key}_count;`, `var ${key}_count = ${count[key]}`); 
+                    response = response.replace(`var ${key}_count;`, `var ${key}_count = ${count[key]}`);
                 }
+
+                response = response.replace('<!-- Data to be inserted here -->', tableBody);
 
                 WriteHtml(res, response);
             }).catch((err) => {
