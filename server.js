@@ -54,7 +54,7 @@ app.get('/', (req, res) => {
                 tableBody += '</tr>';
             });
 
-            ReadFile(path.join(template_dir, 'year.html')).then((template) => {
+            ReadFile(path.join(template_dir, 'index.html')).then((template) => {
                 let response = template;
                 
                 //loops through all of the counts and replaces the html file contents
