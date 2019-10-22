@@ -74,9 +74,9 @@ app.get('/', (req, res) => {
 
 // GET request handler for '/year/*'
 app.get('/year/:selected_year', (req, res) => {
-    let year = req.params.selected_year;
+    let currentYear = parseInt(req.params.selected_year);
 
-    db.all('SELECT * FROM Consumption WHERE year = ?', [year], (err, rows) => {
+    db.all('SELECT * FROM Consumption WHERE year = ?', [currentYear], (err, rows) => {
         if (err) { console.log(err); }
         else {
 
@@ -100,7 +100,7 @@ app.get('/year/:selected_year', (req, res) => {
                 }
 
                 let stateTotal = 0;
-                for(key in count) {
+                for (key in count) {
                     stateTotal += count[key];
                 }
 
@@ -113,18 +113,26 @@ app.get('/year/:selected_year', (req, res) => {
                 let response = template;
 
                 //replace the title
-                response = response.replace('<title>US Energy Consumption</title>', `<title>${year} US Energy Consumption</title>`);
+                response = response.replace('<title>US Energy Consumption</title>', `<title>${currentYear} US Energy Consumption</title>`);
 
                 //replace h2
-                response = response.replace('<h2>National Snapshot</h2>', `<h2>${year} National Snapshot</h2>`);
+                response = response.replace('<h2>National Snapshot</h2>', `<h2>${currentYear} National Snapshot</h2>`);
 
                 //replace the year
-                response = response.replace('var year;', `var year = ${year};`);
+                response = response.replace('var year;', `var year = ${currentYear};`);
 
                 //replace all of the variables with their new value
                 for (key in count) {
                     response = response.replace(`var ${key}_count;`, `var ${key} = ${count[key]};`);
                 }
+
+                //get the next/prev year using tertiary opertator to check for bounds
+                let nextYear = currentYear == 2017 ? 2017 : currentYear + 1;
+                let prevYear = currentYear == 1960 ? 1960 : currentYear - 1;
+
+                //update the next/prev buttons to navigate between years
+                response = response.replace('<a class="prev_next" href="">Prev</a>', `<a class="prev_next" href="/year/${prevYear}">${prevYear}</a>`);
+                response = response.replace('<a class="prev_next" href="">Next</a>', `<a class="prev_next" href="/year/${nextYear}">${nextYear}</a>`);
 
                 //insert the tableData into the table
                 response = response.replace('<!-- Data to be inserted here -->', tableData);
