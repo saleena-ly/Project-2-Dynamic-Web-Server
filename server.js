@@ -40,29 +40,29 @@ app.get('/', (req, res) => {
                 renewable: 0
             }
 
-            let tableBody = '';
+            let tableData = '';
 
             rows.forEach(row => {
                 tableBody += `<tr><td>${row.state_abbreviation}</td>`;
 
                 /*loops through coal, natural_gas, nuclear... and increments the
                 respective count and creates a cell in the table.*/
-                for(key in count) { 
+                for (key in count) {
                     count[key] += row[key];
-                    tableBody += `<td>${row[key]}</td>`;
+                    tableData += `<td>${row[key]}</td>`;
                 }
-                tableBody += '</tr>';
+                tableData += '</tr>';
             });
 
             ReadFile(path.join(template_dir, 'index.html')).then((template) => {
                 let response = template;
-                
+
                 //loops through all of the counts and replaces the html file contents
-                for(key in count) { 
+                for (key in count) {
                     response = response.replace(`var ${key}_count;`, `var ${key}_count = ${count[key]}`);
                 }
 
-                response = response.replace('<!-- Data to be inserted here -->', tableBody);
+                response = response.replace('<!-- Data to be inserted here -->', tableData);
 
                 WriteHtml(res, response);
             }).catch((err) => {
@@ -74,12 +74,66 @@ app.get('/', (req, res) => {
 
 // GET request handler for '/year/*'
 app.get('/year/:selected_year', (req, res) => {
-    ReadFile(path.join(template_dir, 'year.html')).then((template) => {
-        let response = template;
-        // modify `response` here
-        WriteHtml(res, response);
-    }).catch((err) => {
-        Write404Error(res);
+    let year = req.params.selected_year;
+
+    db.all('SELECT * FROM Consumption WHERE year = ?', [year], (err, rows) => {
+        if (err) { console.log(err); }
+        else {
+
+            let count = {
+                coal: 0,
+                natural_gas: 0,
+                nuclear: 0,
+                petroleum: 0,
+                renewable: 0
+            }
+
+            let tableData = '';
+
+            //go through each row and total up each catagory and store it in count
+            rows.forEach(row => {
+                tableData += `<tr><td>${row.state_abbreviation}</td>`;
+
+                for (key in count) {
+                    count[key] += row[key];
+                    tableData += `<td>${row[key]}</td>`;
+                }
+
+                let stateTotal = 0;
+                for(key in count) {
+                    stateTotal += count[key];
+                }
+
+                tableData += `<td>${stateTotal}</td>`;
+
+                tableData += '</tr>';
+            });
+
+            ReadFile(path.join(template_dir, 'year.html')).then(template => {
+                let response = template;
+
+                //replace the title
+                response = response.replace('<title>US Energy Consumption</title>', `<title>${year} US Energy Consumption</title>`);
+
+                //replace h2
+                response = response.replace('<h2>National Snapshot</h2>', `<h2>${year} National Snapshot</h2>`);
+
+                //replace the year
+                response = response.replace('var year;', `var year = ${year};`);
+
+                //replace all of the variables with their new value
+                for (key in count) {
+                    response = response.replace(`var ${key}_count;`, `var ${key} = ${count[key]};`);
+                }
+
+                //insert the tableData into the table
+                response = response.replace('<!-- Data to be inserted here -->', tableData);
+
+                WriteHtml(res, response);
+            }).catch((err) => {
+                Write404Error(res);
+            });
+        }
     });
 });
 
@@ -98,7 +152,9 @@ app.get('/state/:selected_state', (req, res) => {
 app.get('/energy-type/:selected_energy_type', (req, res) => {
     ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
         let response = template;
-        // modify `response` here
+
+
+
         WriteHtml(res, response);
     }).catch((err) => {
         Write404Error(res);
@@ -119,13 +175,13 @@ function ReadFile(filename) {
 }
 
 function Write404Error(res) {
-    res.writeHead(404, {'Content-Type': 'text/plain'});
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.write('Error: file not found');
     res.end();
 }
 
 function WriteHtml(res, html) {
-    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.writeHead(200, { 'Content-Type': 'text/html' });
     res.write(html);
     res.end();
 }
