@@ -77,9 +77,15 @@ app.get('/year/:selected_year', (req, res) => {
     let currentYear = parseInt(req.params.selected_year);
 
     db.all('SELECT * FROM Consumption WHERE year = ?', [currentYear], (err, rows) => {
-        if (err) { console.log(err); }
+        if (err) {
+            console.log('there was an issue querying the db');
+        }
+        //the database returned an empty array for rows
+        else if (rows.length == 0) {
+            console.log(`the database didn't respond with data for ${currentYear}`);
+            WriteCustom404Error(res, `no data for the year ${currentYear}`);
+        }
         else {
-
             let count = {
                 coal: 0,
                 natural_gas: 0,
@@ -283,5 +289,19 @@ function WriteHtml(res, html) {
     res.end();
 }
 
+let WriteCustom404Error = (res, reason) => {
+    res.writeHead(404, { 'Content-Type': 'text/html' });
+    ReadFile(path.join(template_dir, '404.html'))
+        .then(template => {
+            template = template.replace('<p class ="error-reason">page not found</p>',
+            `<p class ="error-reason">${reason}</p>`);
+
+            res.write(template);
+            res.end();
+        })
+        .catch(err => {
+            console.log(err);
+        });
+}
 
 var server = app.listen(port);
