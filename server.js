@@ -196,7 +196,7 @@ app.get('/state/:selected_state', (req, res) => {
 
 	                //replace all of the variables with their new value
 	                for (key in count) {
-	                    response = response.replace(`var ${key}_count;`, `var ${key} = ${count[key]};`);
+	                    response = response.replace(`var ${key}_count;`, `var ${key}_count = ${count[key]};`);
 	                }
 
 	                //get the next/prev state
