@@ -123,7 +123,7 @@ app.get('/year/:selected_year', (req, res) => {
 
                 //replace all of the variables with their new value
                 for (key in count) {
-                    response = response.replace(`var ${key}_count;`, `var ${key} = ${count[key]};`);
+                    response = response.replace(`var ${key}_count;`, `var ${key}_count = ${count[key]};`);
                 }
 
                 //get the next/prev year using tertiary opertator to check for bounds
@@ -225,12 +225,15 @@ app.get('/state/:selected_state', (req, res) => {
 								nextState = states[i+1];
 							}
 						}
-					}
+                    }
 
-	                //update the next/prev buttons to navigate between years
-	                response = response.replace('<a class="prev_next" href="">XX</a>', `<a class="prev_next" href="/year/${prevYear}">${prevState}</a>`);
-	                response = response.replace('<a class="prev_next" href="">XX</a>', `<a class="prev_next" href="/year/${nextYear}">${nextState}</a>`);
+                    //replace the next and previous buttons
+                    response = response.replace(`<a class="prev_next" href="">XX</a> <!-- change XX to prev state, link to WY if state is AK -->`,
+                    `<a class="prev_next" href="/${prevState}">${prevState}</a>`);
 
+                    response = response.replace(`<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->`,
+                     `<a class="prev_next" href="/${nextState}">${nextState}</a>`);
+                    
 	                //insert the tableData into the table
 	                response = response.replace('<!-- Data to be inserted here -->', tableData);
 
