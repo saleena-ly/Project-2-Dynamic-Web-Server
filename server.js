@@ -244,7 +244,7 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
 			let response = template;
 
 			response.replace('<title>US Energy Consumption</title>', `<title>US ${currentEnergy} Consumption</title>`);
-
+            response.replace('var energy_type;', `var energy_type = ${currentEnergy};`);
 
 			WriteHtml(res, response);
 		}).catch((err) => {
