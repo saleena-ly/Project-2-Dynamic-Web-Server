@@ -100,13 +100,11 @@ app.get('/year/:selected_year', (req, res) => {
             rows.forEach(row => {
                 tableData += `<tr><td>${row.state_abbreviation}</td>`;
 
+                let stateTotal = 0;
+
                 for (key in count) {
                     count[key] += row[key];
                     tableData += `<td>${row[key]}</td>`;
-                }
-
-                let stateTotal = 0;
-                for (key in count) {
                     stateTotal += count[key];
                 }
 
@@ -155,98 +153,71 @@ app.get('/year/:selected_year', (req, res) => {
 app.get('/state/:selected_state', (req, res) => {
     let currentState = req.params.selected_state;
 
-    db.all('SELECT * FROM States', (err, states) => {
-        console.log(states);
-        db.all('SELECT * FROM Consumption WHERE state_abbreviation = ?', [currentState], (err, rows) => {
-            if (err) { console.log(err); }
-            //when the database searches for a state that doesn't exist
-            else if(rows.length == 0) { WriteCustom404Error(res, `no data for the state ${currentState}`) }
-            else {
-                console.log("in db");
-                let count = {
-                    coal: 0,
-                    natural_gas: 0,
-                    nuclear: 0,
-                    petroleum: 0,
-                    renewable: 0
+    //get all of the consumption data from the database
+    db.all('SELECT * FROM Consumption WHERE state_abbreviation = ?', [currentState], (err, rows) => {
+        //get the state information - an array containing an object for each state
+        db.all('SELECT * FROM States', (err, states) => {
+            //object with a key for each energy type -- the value being an array of each year's total
+            let counts = {
+                coal: [],
+                natural_gas: [],
+                nuclear: [],
+                petroleum: [],
+                renewable: []
+            }
+
+            let tableData = '';
+
+            //loop through the database rows and push the yearly totals to it's respective array in counts
+            rows.forEach(row => {
+                let row_total = 0;
+
+                //each row in the table starts out with the year
+                tableData += `<tr><td>${row.year}</td>`;
+
+                for (key in counts) {
+                    counts[key].push(row[key]);
+                    tableData += `<td>${row[key]}</td>`;
+                    row_total += row[key]
                 }
 
-                let tableData = '';
+                //once the row has first 6 columns, insert the last column -- the total
+                tableData += `<td>${row_total}</td></tr>`;
+            });
 
-                //go through each row and total up each catagory and store it in count
-                rows.forEach(row => {
-                    tableData += `<tr><td>${row.state_abbreviation}</td>`;
+            ReadFile(path.join(template_dir, 'state.html')).then(template => {
+                let response = template;
 
-                    for (key in count) {
-                        count[key] += row[key];
-                        tableData += `<td>${row[key]}</td>`;
-                    }
+                //replace the state variable
+                response = response.replace(`var state;`, `var state = '${currentState}';`);
 
-                    let stateTotal = 0;
-                    for (key in count) {
-                        stateTotal += count[key];
-                    }
+                //replace the title
+                response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentState} US Energy Consumption</title>`);
 
-                    tableData += `<td>${stateTotal}</td>`;
+                //replace the h2
+                response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${currentState} In Depth Analysis</h2>`);
 
-                    tableData += '</tr>';
-                });
+                //loop through the counts variable and update the energy type variables
+                for (key in counts) {
+                    response = response.replace(`var ${key}_counts;`, `var ${key}_counts = [${counts[key]}];`);
+                }
 
-                ReadFile(path.join(template_dir, 'state.html')).then(template => {
-                    let response = template;
-                    console.log("read template");
-                    //replace the title
-                    response = response.replace('<title>US Energy Consumption</title>', `<title>${currentState} Energy Consumption</title>`);
+                //insert the table data into the template
+                response = response.replace('<!-- Data to be inserted here -->', tableData);
 
-                    //replace h2
-                    response = response.replace('<h2>Yearly Snapshot</h2>', `<h2>${currentYear} National Snapshot</h2>`);
+                let stateIndex = states.findIndex(state => state.state_abbreviation === currentState);
+                let nextState = stateIndex == 50 ? states[0].state_abbreviation : states[stateIndex + 1].state_abbreviation;
+                let prevState = stateIndex == 0 ? states[50].state_abbreviation : states[stateIndex - 1].state_abbreviation;
 
-                    //replace the year
-                    response = response.replace('var state;', `var state = ${currentState};`);
+                response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to prev state, link to WY if state is AK -->',
+                    `<a class="prev_next" href="/state/${prevState}">${prevState}</a>`);
+                response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->',
+                    `<a class="prev_next" href="/state/${nextState}">${nextState}</a>`);
 
-                    //replace all of the variables with their new value
-                    for (key in count) {
-                        response = response.replace(`var ${key}_count;`, `var ${key}_count = ${count[key]};`);
-                    }
-
-                    //get the next/prev state
-                    let states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA",
-                        "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA",
-                        "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"];
-                    let prevState;
-                    let nextState;
-                    if (currentState == "AL") {
-                        prevState = "WY";
-                        nextState = "AK";
-                    }
-                    else if (currentState == "WY") {
-                        prevState = "WI";
-                        nextState = "AL";
-                    }
-                    else {
-                        for (let i = 0; i < states.length; i++) {
-                            if (states[i] == currentState) {
-                                prevState = states[i - 1];
-                                nextState = states[i + 1];
-                            }
-                        }
-                    }
-
-                    //replace the next and previous buttons
-                    response = response.replace(`<a class="prev_next" href="">XX</a> <!-- change XX to prev state, link to WY if state is AK -->`,
-                        `<a class="prev_next" href="/${prevState}">${prevState}</a>`);
-
-                    response = response.replace(`<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->`,
-                        `<a class="prev_next" href="/${nextState}">${nextState}</a>`);
-
-                    //insert the tableData into the table
-                    response = response.replace('<!-- Data to be inserted here -->', tableData);
-
-                    WriteHtml(res, response);
-                }).catch((err) => {
-                    Write404Error(res);
-                });
-            }
+                WriteHtml(res, response);
+            }).catch((err) => {
+                Write404Error(res);
+            });
         });
     });
 });
@@ -291,6 +262,7 @@ function WriteHtml(res, html) {
 
 let WriteCustom404Error = (res, reason) => {
     res.writeHead(404, { 'Content-Type': 'text/html' });
+    //read the 404 template and insert the custom reason
     ReadFile(path.join(template_dir, '404.html'))
         .then(template => {
             template = template.replace('<p class ="error-reason">page not found</p>',
@@ -299,9 +271,7 @@ let WriteCustom404Error = (res, reason) => {
             res.write(template);
             res.end();
         })
-        .catch(err => {
-            console.log(err);
-        });
+        .catch(err => { console.log(err); });
 }
 
 var server = app.listen(port);

@@ -16,16 +16,22 @@ function Init() {
     SearchTypeChanged();
 }
 
+//changes the label text to match what is being selected
 function SearchTypeChanged() {
     var view_type = document.getElementById('view_type');
+    let view_select_text = document.getElementById('view_select_text');
+
     if (view_type.value === 'year') {
         PopulateSearchValueYears();
+        view_select_text.innerText = 'Select a year --> '
     }
     else if (view_type.value === 'state') {
         PopulateSearchValueStates();
+        view_select_text.innerText = 'Select a state --> '
     }
-    else {
+    else if(view_type.value === 'energy-type'){
         PopulateSearchValueEnergyType();
+        view_select_text.innerText = 'Select an energy type --> '
     }
 }
 
