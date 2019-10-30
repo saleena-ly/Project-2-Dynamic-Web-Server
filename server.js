@@ -171,6 +171,7 @@ app.get('/state/:selected_state', (req, res) => {
                 }
 
                 let tableData = '';
+                let stateName = "";
 
                 //loop through the database rows and push the yearly totals to it's respective array in counts
                 rows.forEach(row => {
@@ -189,6 +190,10 @@ app.get('/state/:selected_state', (req, res) => {
                     tableData += `<td>${row_total}</td></tr>`;
                 });
 
+				db.get('SELECT state_name name FROM States WHERE state_abbreviation = ?', [currentState], (err, row) => {
+					stateName = row.name;
+				});
+
                 ReadFile(path.join(template_dir, 'state.html')).then(template => {
                     let response = template;
 
@@ -196,10 +201,10 @@ app.get('/state/:selected_state', (req, res) => {
                     response = response.replace(`var state;`, `var state = '${currentState}';`);
 
                     //replace the title
-                    response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentState} US Energy Consumption</title>`);
+                    response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentState} Energy Consumption</title>`);
 
                     //replace the h2
-                    response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${currentState} In Depth Analysis</h2>`);
+                    response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${stateName} In Depth Analysis</h2>`);
 
                     //loop through the counts variable and update the energy type variables
                     for (key in counts) {
@@ -233,15 +238,21 @@ app.get('/state/:selected_state', (req, res) => {
 
 // GET request handler for '/energy-type/*'
 app.get('/energy-type/:selected_energy_type', (req, res) => {
-    ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
-        let response = template;
+	let currentEnergy = req.params.selected_energy_type;
+	//db.all('SELECT * FROM Consumption WHERE state_abbreviation = ?', [currentState], (err, rows) => {
 
 
+		ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
+			let response = template;
 
-        WriteHtml(res, response);
-    }).catch((err) => {
-        Write404Error(res);
-    });
+			response.replace('<title>US Energy Consumption</title>', `<title>US ${currentEnergy} Consumption</title>`);
+
+
+			WriteHtml(res, response);
+		}).catch((err) => {
+			Write404Error(res);
+		});
+	//});
 });
 
 function ReadFile(filename) {
