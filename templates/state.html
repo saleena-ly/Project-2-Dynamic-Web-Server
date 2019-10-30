@@ -30,12 +30,12 @@
                 <h2>In Depth Analysis</h2>
                 <div class="spacer1"></div>
                 <label for="view_type">View by: </label>
-                <select id="view_type" onchange="SearchTypeChanged()">
+                <select id="view_type" onchange="SearchTypeChanged()"">
                     <option value="year">Year</option>
                     <option value="state" selected>State</option>
                     <option value="energy-type">Energy Type</option>
                 </select>
-                <label for="view_value">Select year: </label>
+                <label for="view_value" id="view_select_text">Select year: </label>
                 <select id="view_value">
                 </select>
                 <button type="button" onclick="SubmitView()">View</button>
