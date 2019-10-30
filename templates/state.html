@@ -12,20 +12,20 @@
     <script type="application/javascript">
         // `state` and arrays of consumption per year --> set these variables equal to appropriate value
         var state;
-        var coal_counts;  // e.g. [1234, 2567, ...]
-        var natural_gas_counts;
-        var nuclear_counts;
-        var petroleum_counts;
-        var renewable_counts;
+        var coal_count;  // e.g. [1234, 2567, ...]
+        var natural_gas_count;
+        var nuclear_count;
+        var petroleum_count;
+        var renewable_count;
     </script>
 </head>
 <body onload="Init()">
     <div id="wrapper">
         <div id="content">
             <a href="/"><h1>US Energy Consumption</h1></a>
-            
+
             <div class="spacer2"></div>
-            
+
             <div id="view_select">
                 <h2>In Depth Analysis</h2>
                 <div class="spacer1"></div>
@@ -40,7 +40,7 @@
                 </select>
                 <button type="button" onclick="SubmitView()">View</button>
             </div>
-            
+
             <div class="spacer2"></div>
 
             <div>
