@@ -218,6 +218,9 @@ app.get('/state/:selected_state', (req, res) => {
                     response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->',
                         `<a class="prev_next" href="/state/${nextState}">${nextState}</a>`);
 
+					response = response.replace('<img src="/images/noimage.jpg" alt="No Image" width="250" height="auto" />',
+						`<img src="/images/${currentState}.jpg" alt="${currentState}" width="250" height="auto" />`);
+
                     WriteHtml(res, response);
                 }).catch((err) => {
                     Write404Error(res);
