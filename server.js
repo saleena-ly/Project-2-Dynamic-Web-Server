@@ -172,6 +172,8 @@ app.get('/state/:selected_state', (req, res) => {
 
                 let tableData = '';
 
+                let stateIndex = states.findIndex(state => state.state_abbreviation === currentState);
+
                 //loop through the database rows and push the yearly totals to it's respective array in counts
                 rows.forEach(row => {
                     let row_total = 0;
@@ -199,7 +201,7 @@ app.get('/state/:selected_state', (req, res) => {
                     response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentState} Energy Consumption</title>`);
 
                     //replace the h2
-                    response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${currentState.name} In Depth Analysis</h2>`);
+                    response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${states[stateIndex].state_name} In Depth Analysis</h2>`);
 
                     //loop through the counts variable and update the energy type variables
                     for (key in counts) {
@@ -210,7 +212,6 @@ app.get('/state/:selected_state', (req, res) => {
                     response = response.replace('<!-- Data to be inserted here -->', tableData);
 
                     //get the current state's index in the states array and the next/previous
-                    let stateIndex = states.findIndex(state => state.state_abbreviation === currentState);
                     let nextState = stateIndex == 50 ? states[0].state_abbreviation : states[stateIndex + 1].state_abbreviation;
                     let prevState = stateIndex == 0 ? states[50].state_abbreviation : states[stateIndex - 1].state_abbreviation;
 
