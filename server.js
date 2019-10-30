@@ -155,70 +155,75 @@ app.get('/state/:selected_state', (req, res) => {
 
     //get all of the consumption data from the database
     db.all('SELECT * FROM Consumption WHERE state_abbreviation = ?', [currentState], (err, rows) => {
-        //get the state information - an array containing an object for each state
-        db.all('SELECT * FROM States', (err, states) => {
-            //object with a key for each energy type -- the value being an array of each year's total
-            let counts = {
-                coal: [],
-                natural_gas: [],
-                nuclear: [],
-                petroleum: [],
-                renewable: []
-            }
-
-            let tableData = '';
-
-            //loop through the database rows and push the yearly totals to it's respective array in counts
-            rows.forEach(row => {
-                let row_total = 0;
-
-                //each row in the table starts out with the year
-                tableData += `<tr><td>${row.year}</td>`;
-
-                for (key in counts) {
-                    counts[key].push(row[key]);
-                    tableData += `<td>${row[key]}</td>`;
-                    row_total += row[key]
+        if (rows.length == 0) {
+            WriteCustom404Error(res, 'no data for ' + currentState);
+        }
+        else {
+            //get the state information - an array containing an object for each state
+            db.all('SELECT * FROM States', (err, states) => {
+                //object with a key for each energy type -- the value being an array of each year's total
+                let counts = {
+                    coal: [],
+                    natural_gas: [],
+                    nuclear: [],
+                    petroleum: [],
+                    renewable: []
                 }
 
-                //once the row has first 6 columns, insert the last column -- the total
-                tableData += `<td>${row_total}</td></tr>`;
+                let tableData = '';
+
+                //loop through the database rows and push the yearly totals to it's respective array in counts
+                rows.forEach(row => {
+                    let row_total = 0;
+
+                    //each row in the table starts out with the year
+                    tableData += `<tr><td>${row.year}</td>`;
+
+                    for (key in counts) {
+                        counts[key].push(row[key]);
+                        tableData += `<td>${row[key]}</td>`;
+                        row_total += row[key]
+                    }
+
+                    //once the row has first 6 columns, insert the last column -- the total
+                    tableData += `<td>${row_total}</td></tr>`;
+                });
+
+                ReadFile(path.join(template_dir, 'state.html')).then(template => {
+                    let response = template;
+
+                    //replace the state variable
+                    response = response.replace(`var state;`, `var state = '${currentState}';`);
+
+                    //replace the title
+                    response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentState} US Energy Consumption</title>`);
+
+                    //replace the h2
+                    response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${currentState} In Depth Analysis</h2>`);
+
+                    //loop through the counts variable and update the energy type variables
+                    for (key in counts) {
+                        response = response.replace(`var ${key}_counts;`, `var ${key}_counts = [${counts[key]}];`);
+                    }
+
+                    //insert the table data into the template
+                    response = response.replace('<!-- Data to be inserted here -->', tableData);
+
+                    let stateIndex = states.findIndex(state => state.state_abbreviation === currentState);
+                    let nextState = stateIndex == 50 ? states[0].state_abbreviation : states[stateIndex + 1].state_abbreviation;
+                    let prevState = stateIndex == 0 ? states[50].state_abbreviation : states[stateIndex - 1].state_abbreviation;
+
+                    response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to prev state, link to WY if state is AK -->',
+                        `<a class="prev_next" href="/state/${prevState}">${prevState}</a>`);
+                    response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->',
+                        `<a class="prev_next" href="/state/${nextState}">${nextState}</a>`);
+
+                    WriteHtml(res, response);
+                }).catch((err) => {
+                    Write404Error(res);
+                });
             });
-
-            ReadFile(path.join(template_dir, 'state.html')).then(template => {
-                let response = template;
-
-                //replace the state variable
-                response = response.replace(`var state;`, `var state = '${currentState}';`);
-
-                //replace the title
-                response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentState} US Energy Consumption</title>`);
-
-                //replace the h2
-                response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${currentState} In Depth Analysis</h2>`);
-
-                //loop through the counts variable and update the energy type variables
-                for (key in counts) {
-                    response = response.replace(`var ${key}_counts;`, `var ${key}_counts = [${counts[key]}];`);
-                }
-
-                //insert the table data into the template
-                response = response.replace('<!-- Data to be inserted here -->', tableData);
-
-                let stateIndex = states.findIndex(state => state.state_abbreviation === currentState);
-                let nextState = stateIndex == 50 ? states[0].state_abbreviation : states[stateIndex + 1].state_abbreviation;
-                let prevState = stateIndex == 0 ? states[50].state_abbreviation : states[stateIndex - 1].state_abbreviation;
-
-                response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to prev state, link to WY if state is AK -->',
-                    `<a class="prev_next" href="/state/${prevState}">${prevState}</a>`);
-                response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->',
-                    `<a class="prev_next" href="/state/${nextState}">${nextState}</a>`);
-
-                WriteHtml(res, response);
-            }).catch((err) => {
-                Write404Error(res);
-            });
-        });
+        }
     });
 });
 
