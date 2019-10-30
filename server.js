@@ -190,10 +190,6 @@ app.get('/state/:selected_state', (req, res) => {
                     tableData += `<td>${row_total}</td></tr>`;
                 });
 
-				db.get('SELECT state_name name FROM States WHERE state_abbreviation = ?', [currentState], (err, row) => {
-					stateName = row.name;
-				});
-
                 ReadFile(path.join(template_dir, 'state.html')).then(template => {
                     let response = template;
 
@@ -204,7 +200,7 @@ app.get('/state/:selected_state', (req, res) => {
                     response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentState} Energy Consumption</title>`);
 
                     //replace the h2
-                    response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${stateName} In Depth Analysis</h2>`);
+                    response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${currentState.name} In Depth Analysis</h2>`);
 
                     //loop through the counts variable and update the energy type variables
                     for (key in counts) {
@@ -223,6 +219,7 @@ app.get('/state/:selected_state', (req, res) => {
                     response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->',
                         `<a class="prev_next" href="/state/${nextState}">${nextState}</a>`);
 
+                    //replace the image
 					response = response.replace('<img src="/images/noimage.jpg" alt="No Image" width="250" height="auto" />',
 						`<img src="/images/${currentState}.jpg" alt="${currentState}" width="250" height="auto" />`);
 
