@@ -171,7 +171,6 @@ app.get('/state/:selected_state', (req, res) => {
                 }
 
                 let tableData = '';
-                let stateName = "";
 
                 //loop through the database rows and push the yearly totals to it's respective array in counts
                 rows.forEach(row => {
@@ -210,10 +209,12 @@ app.get('/state/:selected_state', (req, res) => {
                     //insert the table data into the template
                     response = response.replace('<!-- Data to be inserted here -->', tableData);
 
+                    //get the current state's index in the states array and the next/previous
                     let stateIndex = states.findIndex(state => state.state_abbreviation === currentState);
                     let nextState = stateIndex == 50 ? states[0].state_abbreviation : states[stateIndex + 1].state_abbreviation;
                     let prevState = stateIndex == 0 ? states[50].state_abbreviation : states[stateIndex - 1].state_abbreviation;
 
+                    //dynamically populate the prev and next buttons
                     response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to prev state, link to WY if state is AK -->',
                         `<a class="prev_next" href="/state/${prevState}">${prevState}</a>`);
                     response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->',
