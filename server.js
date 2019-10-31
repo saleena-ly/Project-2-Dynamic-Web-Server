@@ -232,20 +232,28 @@ app.get('/state/:selected_state', (req, res) => {
 
 // GET request handler for '/energy-type/*'
 app.get('/energy-type/:selected_energy_type', (req, res) => {
+	let energyTypes = ['coal', 'natural_gas', 'nuclear', 'petroleum', 'renewable'];
     let currentEnergyType = req.params.selected_energy_type;
+    let isValid = false;
+    for(let i = 0; i < energyTypes.length; i++)
+    {
+		if(currentEnergyType === energyTypes[i])
+		{
+			isValid = true;
+		}
+	}
 
     //get all of the consumption data from the database
     db.all('SELECT * FROM Consumption', (err, rows) => {
-        if(rows == undefined || rows.length == 0) { 
+        if(rows == undefined || rows.length == 0 || isValid == false) {
             WriteCustom404Error(res, `no data for the energy-type ${currentEnergyType}`);
          }
         else {
-            /*object that stores an array for each state, each element 
+            /*object that stores an array for each state, each element
             of that array being the consumption for the specifc year*/
             let state_consumptions = {}
 
             //used for the buttons to determine what the next/previous energy types are
-            let energyTypes = ['coal', 'natural_gas', 'nuclear', 'petroleum', 'renewable'];
             let currentIndex = energyTypes.findIndex(element => element === currentEnergyType);
 
             //loops through each year
