@@ -234,24 +234,71 @@ app.get('/state/:selected_state', (req, res) => {
     });
 });
 
-
 // GET request handler for '/energy-type/*'
 app.get('/energy-type/:selected_energy_type', (req, res) => {
-	let currentEnergy = req.params.selected_energy_type;
-	//db.all('SELECT * FROM Consumption WHERE state_abbreviation = ?', [currentState], (err, rows) => {
+    let currentEnergy = req.params.selected_energy_type;
 
+   //get all of the consumption data from the database
+   db.all('SELECT * FROM Consumption', (err, rows) => {
+        if (rows.length == 0) {
+            WriteCustom404Error(res, 'no data for ' + currentEnergy);
+        }
+        else {
 
-		ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
-			let response = template;
+            //get the state information - an array containing an object for each state
+            db.all('SELECT * FROM States', (err, states) => {
+                //object with a key for each state -- the value being being an array of each year's total
+                let stateCounts = {};
 
-			response.replace('<title>US Energy Consumption</title>', `<title>US ${currentEnergy} Consumption</title>`);
-            response.replace('var energy_type;', `var energy_type = ${currentEnergy};`);
+                let tableData = '';
 
-			WriteHtml(res, response);
-		}).catch((err) => {
-			Write404Error(res);
-		});
-	//});
+                let energyIndex = rows.findIndex(row => row.currentEnergy === currentEnergy);
+
+                //loop through states and initializes the array for each state
+                states.forEach(row => {
+                   stateCounts[`${row.state_abbreviation}`] = [];
+                });
+
+                rows.forEach(row => {
+					//each row in the table starts out with the year
+					tableData += `<tr><td>${row.year}</td>`;
+
+					//adds the currentEnergy count to the table
+					tableData += `<td>${row[currentEnergy]}</td>`;
+
+					//adds the energy amount to the stateCounts
+					stateCounts[row.state_abbreviation].push(row[currentEnergy]);
+
+					tableData += `</tr>`;
+				});
+
+                ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
+                    let response = template;
+                    response.replace(`<title>US Energy Consumption</title>`, `<title>US ${currentEnergy} Consumption</title>`);
+ /*                   response.replace('<h2>Consumption Snapshot</h2>', `<h2>${currentEnergy} Consumption Snapshot</h2>`);
+                    response.replace('var energy_type;', `var energy_type = ${currentEnergy};`);
+					response.replace('var energy_counts;', `var energy_counts = ${stateCounts};`);
+                    response.replace('<img src="/images/noimage.jpg" alt="No Image" width="250" height="auto" />', `,img src="/images/${currentEnergy}.jpg" alt="${currentEnergy}" width="250" height="auto" />`);
+					response.replace('<!-- Data to be inserted here -->', tableData);
+
+                    //get the current energy's index in the energy array and the next/previous
+                    let nextEnergy = energyIndex == 50 ? states[0].state_abbreviation : states[stateIndex + 1].state_abbreviation;
+                    let prevState = energyIndex == 0 ? states[50].state_abbreviation : states[stateIndex - 1].state_abbreviation;
+
+                    //dynamically populate the prev and next buttons
+                    response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to prev state, link to WY if state is AK -->',
+                        `<a class="prev_next" href="/state/${prevState}">${prevState}</a>`);
+                    response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->',
+                        `<a class="prev_next" href="/state/${nextState}">${nextState}</a>`);
+*/
+                    console.log(response);
+                    WriteHtml(res, response);
+                }).catch((err) => {
+                    Write404Error(res);
+                });
+            });
+        }
+	});
 });
 
 function ReadFile(filename) {
