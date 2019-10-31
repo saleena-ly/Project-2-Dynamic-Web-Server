@@ -245,9 +245,9 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
         }
         else {
 
-            //get the state information - an array containing an object for each state
+            //get the state information
             db.all('SELECT * FROM States', (err, states) => {
-                //object with a key for each state -- the value being being an array of each year's total
+                //object with a key for each state -- the value being being an array of each year's current energy count
                 let stateCounts = {};
 
                 let tableData = '';
@@ -274,6 +274,7 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
 
                 ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
                     let response = template;
+                    console.log(`<title>US ${currentEnergy} Consumption</title>`);
                     response.replace(`<title>US Energy Consumption</title>`, `<title>US ${currentEnergy} Consumption</title>`);
  /*                   response.replace('<h2>Consumption Snapshot</h2>', `<h2>${currentEnergy} Consumption Snapshot</h2>`);
                     response.replace('var energy_type;', `var energy_type = ${currentEnergy};`);
@@ -283,13 +284,13 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
 
                     //get the current energy's index in the energy array and the next/previous
                     let nextEnergy = energyIndex == 50 ? states[0].state_abbreviation : states[stateIndex + 1].state_abbreviation;
-                    let prevState = energyIndex == 0 ? states[50].state_abbreviation : states[stateIndex - 1].state_abbreviation;
+                    let prevEnergy = energyIndex == 0 ? states[50].state_abbreviation : states[stateIndex - 1].state_abbreviation;
 
                     //dynamically populate the prev and next buttons
-                    response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to prev state, link to WY if state is AK -->',
-                        `<a class="prev_next" href="/state/${prevState}">${prevState}</a>`);
-                    response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next state, link to AK if state is WY -->',
-                        `<a class="prev_next" href="/state/${nextState}">${nextState}</a>`);
+                    response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to prev enery type, link to Renewable if energy is Coal -->',
+                        `<a class="prev_next" href="/energy-type/${prevEnergy}">${prevEnergy}</a>`);
+                    response = response.replace('<a class="prev_next" href="">XX</a> <!-- change XX to next enery type, link to Coal if energy is Renewable -->',
+                        `<a class="prev_next" href="/energy-type/${nextEnergy}">${nextEnergy}</a>`);
 */
                     console.log(response);
                     WriteHtml(res, response);
