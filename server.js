@@ -233,93 +233,98 @@ app.get('/state/:selected_state', (req, res) => {
 // GET request handler for '/energy-type/*'
 app.get('/energy-type/:selected_energy_type', (req, res) => {
     let currentEnergyType = req.params.selected_energy_type;
+    let energyTypes = ['coal', 'natural_gas', 'nuclear', 'petroleum', 'renewable'];
 
-    //get all of the consumption data from the database
-    db.all('SELECT * FROM Consumption', (err, rows) => {
-        if(rows == undefined || rows.length == 0) { 
-            WriteCustom404Error(res, `no data for the energy-type ${currentEnergyType}`);
-         }
-        else {
-            /*object that stores an array for each state, each element 
-            of that array being the consumption for the specifc year*/
-            let state_consumptions = {}
-
-            //used for the buttons to determine what the next/previous energy types are
-            let energyTypes = ['coal', 'natural_gas', 'nuclear', 'petroleum', 'renewable'];
-            let currentIndex = energyTypes.findIndex(element => element === currentEnergyType);
-
-            //loops through each year
-            for(let i = 1960; i <= 2017; i++) {
-                rows.forEach(element => {
-                    //if the element has the correct year
-                    if(element.year == i) {
-                        //if the state is already in the object
-                        if(state_consumptions[element.state_abbreviation]) {
-                            state_consumptions[element.state_abbreviation].push(element[currentEnergyType]);
-                        }
-                        //if this is the first time looking at the state
-                        else {
-                            state_consumptions[element.state_abbreviation] = [];
-                            state_consumptions[element.state_abbreviation].push(element[currentEnergyType]);
-                        }
-                    }
-                });
+    if (energyTypes.indexOf(currentEnergyType) < 0) {
+        WriteCustom404Error(res, 'there is no data for energy type of ' + currentEnergyType);
+    }
+    else {
+        //get all of the consumption data from the database
+        db.all('SELECT * FROM Consumption', (err, rows) => {
+            if (rows == undefined || rows.length == 0) {
+                WriteCustom404Error(res, `no data for the energy-type ${currentEnergyType}`);
             }
+            else {
+                /*object that stores an array for each state, each element 
+                of that array being the consumption for the specifc year*/
+                let state_consumptions = {}
 
-            let tableData = '';
-            let row_total = 0;
+                //used for the buttons to determine what the next/previous energy types are
+                let currentIndex = energyTypes.findIndex(element => element === currentEnergyType);
 
-            //build the table
-            for(let i = 0; i < 2018 - 1960; i++) {
-                tableData += `<tr><td>${1960 + i}</td>`;
-
-                for(state in state_consumptions) {
-                    tableData += `<td>${state_consumptions[state][i]}</td>`;
-                    row_total += state_consumptions[state][i];
+                //loops through each year
+                for (let i = 1960; i <= 2017; i++) {
+                    rows.forEach(element => {
+                        //if the element has the correct year
+                        if (element.year == i) {
+                            //if the state is already in the object
+                            if (state_consumptions[element.state_abbreviation]) {
+                                state_consumptions[element.state_abbreviation].push(element[currentEnergyType]);
+                            }
+                            //if this is the first time looking at the state
+                            else {
+                                state_consumptions[element.state_abbreviation] = [];
+                                state_consumptions[element.state_abbreviation].push(element[currentEnergyType]);
+                            }
+                        }
+                    });
                 }
 
-                tableData += `<td>${row_total}</td>`;
-                row_total = 0;
+                let tableData = '';
+                let row_total = 0;
+
+                //build the table
+                for (let i = 0; i < 2018 - 1960; i++) {
+                    tableData += `<tr><td>${1960 + i}</td>`;
+
+                    for (state in state_consumptions) {
+                        tableData += `<td>${state_consumptions[state][i]}</td>`;
+                        row_total += state_consumptions[state][i];
+                    }
+
+                    tableData += `<td>${row_total}</td>`;
+                    row_total = 0;
+                }
+
+                ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
+                    let response = template;
+
+                    //replace title
+                    response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentEnergyType} Consumption</title>`);
+
+                    //replace h2s
+                    response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${currentEnergyType} In Depth Analysis</h2>`);
+                    response = response.replace(`<h2>Consumption Snapshot</h2>`, `<h2>${currentEnergyType} Consumption Snapshot</h2>`);
+
+                    //replace the energy_type variable
+                    response = response.replace(`var energy_type;`, `var energy_type = '${currentEnergyType}';`);
+
+                    //replace the energy_counts variable
+                    response = response.replace(`var energy_counts;`, `var energy_counts = ${JSON.stringify(state_consumptions)};`);
+
+                    //replace the next and prev buttons
+                    let nextEnergyType = currentIndex == energyTypes.length - 1 ? energyTypes[0] : energyTypes[currentIndex + 1];
+                    let prevEnergyType = currentIndex == 0 ? energyTypes[energyTypes.length - 1] : energyTypes[currentIndex - 1];
+
+                    response = response.replace(`<a class="prev_next" href="">XX</a> <!-- change XX to prev enery type, link to Renewable if energy is Coal -->`,
+                        `<a class="prev_next" href="/energy-type/${prevEnergyType}">${prevEnergyType}</a>`);
+                    response = response.replace(`<a class="prev_next" href="">XX</a> <!-- change XX to next enery type, link to Coal if energy is Renewable -->`,
+                        `<a class="prev_next" href="/energy-type/${nextEnergyType}">${nextEnergyType}</a>`);
+
+                    //replace the image
+                    response = response.replace(`<img src="/images/noimage.jpg" alt="No Image" width="250" height="auto" />`,
+                        `<img src="/images/${currentEnergyType}.jpg" alt="photo of ${currentEnergyType}" width="250" height="auto" />`);
+
+                    //insert the table data
+                    response = response.replace('<!-- Data to be inserted here -->', tableData);
+
+                    WriteHtml(res, response);
+                }).catch((err) => {
+                    Write404Error(res);
+                });
             }
-
-            ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
-                let response = template;
-
-                //replace title
-                response = response.replace(`<title>US Energy Consumption</title>`, `<title>${currentEnergyType} Consumption</title>`);
-
-                //replace h2s
-                response = response.replace(`<h2>In Depth Analysis</h2>`, `<h2>${currentEnergyType} In Depth Analysis</h2>`);
-                response = response.replace(`<h2>Consumption Snapshot</h2>`, `<h2>${currentEnergyType} Consumption Snapshot</h2>`);
-
-                //replace the energy_type variable
-                response = response.replace(`var energy_type;`, `var energy_type = '${currentEnergyType}';`);
-
-                //replace the energy_counts variable
-                response = response.replace(`var energy_counts;`, `var energy_counts = ${JSON.stringify(state_consumptions)};`);
-
-                //replace the next and prev buttons
-                let nextEnergyType = currentIndex == energyTypes.length - 1 ? energyTypes[0] : energyTypes[currentIndex + 1];
-                let prevEnergyType = currentIndex == 0 ? energyTypes[energyTypes.length - 1] : energyTypes[currentIndex - 1];
-
-                response = response.replace(`<a class="prev_next" href="">XX</a> <!-- change XX to prev enery type, link to Renewable if energy is Coal -->`,
-                    `<a class="prev_next" href="/energy-type/${prevEnergyType}">${prevEnergyType}</a>`);
-                response = response.replace(`<a class="prev_next" href="">XX</a> <!-- change XX to next enery type, link to Coal if energy is Renewable -->`,
-                    `<a class="prev_next" href="/energy-type/${nextEnergyType}">${nextEnergyType}</a>`);
-
-                //replace the image
-                response = response.replace(`<img src="/images/noimage.jpg" alt="No Image" width="250" height="auto" />`,
-                    `<img src="/images/${currentEnergyType}.jpg" alt="photo of ${currentEnergyType}" width="250" height="auto" />`);
-
-                //insert the table data
-                response = response.replace('<!-- Data to be inserted here -->', tableData);
-
-                WriteHtml(res, response);
-            }).catch((err) => {
-                Write404Error(res);
-            });
-        }
-    });
+        });
+    }
 });
 
 function ReadFile(filename) {
