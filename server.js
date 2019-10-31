@@ -127,8 +127,8 @@ app.get('/year/:selected_year', (req, res) => {
                 }
 
                 //get the next/prev year using tertiary opertator to check for bounds
-                let nextYear = currentYear == 2017 ? 2017 : currentYear + 1;
-                let prevYear = currentYear == 1960 ? 1960 : currentYear - 1;
+                let nextYear = currentYear == 2017 ? 1960 : currentYear + 1;
+                let prevYear = currentYear == 1960 ? 2017 : currentYear - 1;
 
                 //update the next/prev buttons to navigate between years
                 response = response.replace('<a class="prev_next" href="">Prev</a>', `<a class="prev_next" href="/year/${prevYear}">${prevYear}</a>`);
@@ -245,7 +245,7 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
                 WriteCustom404Error(res, `no data for the energy-type ${currentEnergyType}`);
             }
             else {
-                /*object that stores an array for each state, each element 
+                /*object that stores an array for each state, each element
                 of that array being the consumption for the specifc year*/
                 let state_consumptions = {}
 
